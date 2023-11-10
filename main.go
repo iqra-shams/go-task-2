@@ -5,17 +5,18 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	// "path/filepath"
 	"strconv"
 	"time"
 )
 
-type DocCounts struct {
+type Summary struct {
 	lineCount, wordsCount, vowelsCount, puncuationsCount int
 }
 
-func Counts(data string, channal chan DocCounts) {
+func Counts(data string, channal chan Summary) {
 
-	DocCounts := DocCounts{}
+	DocCounts := Summary{}
 	// fmt.Println(data)
 
 	for _, words := range data {
@@ -35,47 +36,74 @@ func Counts(data string, channal chan DocCounts) {
 	channal <- DocCounts
 }
 func main() {
+
+	
 	start := time.Now()
-	channal := make(chan DocCounts)
-	// content, err := ioutil.ReadFile("file.txt")
-	content, err := ioutil.ReadFile("/home/iqra/Downloads/newFile.txt")
-	if err != nil {
-		log.Fatal(err)
+	/*error handeling*/
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("panic occurred:", err)
+		}
+	}()
+	/**/
+	channal := make(chan Summary)
+	filepath:=os.Args[1]
+	if filepath !=""{
+
+		content, err := ioutil.ReadFile(filepath)
+		// content, err := ioutil.ReadFile("/home/iqra/Downloads/newFile.txt")
+		if err != nil {
+			log.Fatal(err)
+		}
+		fileData := string(content)
+	
+		 argument:=os.Args[2]
+		
+		routains, err := strconv.Atoi(argument)
+		// fmt.Printf("%d",len(os.Args))
+		// fmt.Println(routains,"fty")
+		if err != nil {
+			log.Fatal(err,"dfgghfh")
+			
+		}
+		
+	
+		
+		chunk := len(fileData) / routains
+		startIndex := 0
+		endIndex := chunk
+		for iterations := 0; iterations < routains; iterations++ {
+			go Counts(fileData[startIndex:endIndex], channal)
+			// fmt.Printf("chunk %d:%s: \n", iterations+1, fileData[startIndex:endIndex])
+			startIndex = endIndex
+			endIndex += chunk
+	
+		}
+	
+		for iterations := 0; iterations < routains; iterations++ {
+			counts := <-channal
+	
+			fmt.Printf("number of lines of chunk %d: %d \n", iterations+1, counts.lineCount)
+			fmt.Printf("number of words of chunk %d: %d \n", iterations+1, counts.wordsCount)
+			fmt.Printf("number of vowels of chunk %d: %d \n", iterations+1, counts.vowelsCount)
+			fmt.Printf("number of puncuations of chunk %d: %d \n", iterations+1, counts.puncuationsCount)
+	
+		}
+		// for iterations := 0; iterations < routains; iterations++ {
+	
+	
+		// }
+		
+
+		
+	}else{
+		fmt.Println("please enter the path name")
 	}
-	fileData := string(content)
 
-	routains, err := strconv.Atoi(os.Args[1])
-	// fmt.Println(routains,"fty")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// if routains==0{
-	chunk := len(fileData) / routains
-	startIndex := 0
-	endIndex := chunk
-	for iterations := 0; iterations < routains; iterations++ {
-		go Counts(fileData[startIndex:endIndex], channal)
-		// fmt.Printf("chunk %d:%s: \n", iterations+1, fileData[startIndex:endIndex])
-		startIndex = endIndex
-		endIndex += chunk
-
-	}
-
-	for iterations := 0; iterations < routains; iterations++ {
-		counts := <-channal
-
-		fmt.Printf("number of lines of chunk %d: %d \n", iterations+1, counts.lineCount)
-		fmt.Printf("number of words of chunk %d: %d \n", iterations+1, counts.wordsCount)
-		fmt.Printf("number of vowels of chunk %d: %d \n", iterations+1, counts.vowelsCount)
-		fmt.Printf("number of puncuations of chunk %d: %d \n", iterations+1, counts.puncuationsCount)
-
-	}
-	// for iterations := 0; iterations < routains; iterations++ {
-
-	// }
-
-	// }
 	fmt.Println("Run Time:", time.Since(start))
+
+	
+
+	
 
 }
